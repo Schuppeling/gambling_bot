@@ -1,7 +1,17 @@
 package database
 
-/*List of queries that I use*/
+import (
+	"database/sql"
+	"fmt"
+	"gambling/types"
+	"log"
 
+	_ "github.com/lib/pq"
+)
+
+var Db *sql.DB
+
+//List of queries that I use
 const (
 	//SELECTS
 	GET_POINTS_BY_DISCORD_ID                 = `SELECT points from users where discord_id = $1;`
@@ -27,3 +37,47 @@ const (
 	UPDATE_USERS_POINTS_BY_ID          = `UPDATE users set points = $1 where id = $2;`
 	UPDATE_BET_TO_INACTIVE_WITH_RESULT = `UPDATE bets set active = FALSE, result = $1 where bet_name = $2 and active = TRUE;`
 )
+
+func ConnectToDB(properties *types.DBProperties) error {
+	var err error
+
+	info := fmt.Sprintf("host=%s port=%d user=%s "+
+		"password=%s dbname=%s sslmode=disable",
+		properties.Host, properties.Port, properties.User, properties.Password, properties.Name)
+
+	Db, err = sql.Open("postgres", info)
+
+	if err != nil {
+		return err
+	}
+
+	err = Db.Ping()
+
+	return err
+}
+
+func getPointsByDiscordId(discord_id string) int64 {
+	var num_points int64 = 0
+	var err error
+
+	row := Db.QueryRow(GET_POINTS_BY_DISCORD_ID, discord_id)
+
+	switch err = row.Scan(&num_points); err {
+	case sql.ErrNoRows:
+		_, err = Db.Exec(INSERT_NEW_USER, discord_id, num_points)
+		if err != nil {
+			log.Println(err)
+		}
+	default:
+		log.Println(err)
+	}
+
+	return num_points
+}
+
+func updateUsersPointsByDiscordId(discord_id string, newPoints int64) {
+	_, err := Db.Exec(UPDATE_USERS_POINTS_BY_DISCORD_ID, newPoints, discord_id)
+	if err != nil {
+		log.Println(err)
+	}
+}

@@ -10,46 +10,30 @@ import (
 
 var Db *sql.DB
 
-func ConnectToDB(properties *types.DBProperties) error {
-	var err error
+// func ConnectToDB(properties *types.DBProperties) error {
+// 	var err error
 
-	info := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s sslmode=disable",
-		properties.Host, properties.Port, properties.User, properties.Password, properties.Name)
+// 	info := fmt.Sprintf("host=%s port=%d user=%s "+
+// 		"password=%s dbname=%s sslmode=disable",
+// 		properties.Host, properties.Port, properties.User, properties.Password, properties.Name)
 
-	Db, err = sql.Open("postgres", info)
+// 	Db, err = sql.Open("postgres", info)
 
-	if err != nil {
-		return err
-	}
+// 	if err != nil {
+// 		return err
+// 	}
 
-	err = Db.Ping()
+// 	err = Db.Ping()
 
-	return err
-}
+// 	return err
+// }
 
 /*
 Gets the current amount of points belonging to a discord user. If the user does not exist, a row is
 inserted.
 */
 func GetPoints(discord_id string) int64 {
-	var num_points int64 = 0
-
-	row := Db.QueryRow(GET_POINTS_BY_DISCORD_ID, discord_id)
-
-	switch err := row.Scan(&num_points); err {
-	case sql.ErrNoRows:
-		_, err = Db.Exec(INSERT_NEW_USER, discord_id, num_points)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		break
-	case nil:
-		break
-	default:
-		panic(err)
-	}
+	num_points := getPointsByDiscordId(discord_id)
 
 	return num_points
 }
@@ -64,10 +48,7 @@ func AddPoints(user string, points int64) {
 	//add points and update record
 	newPoints := currentPoints + points
 
-	_, err := Db.Exec(UPDATE_USERS_POINTS_BY_DISCORD_ID, newPoints, user)
-	if err != nil {
-		panic(err)
-	}
+	updateUsersPointsByDiscordId(user, newPoints)
 }
 
 func GetRankings() ([]types.Rank, error) {
